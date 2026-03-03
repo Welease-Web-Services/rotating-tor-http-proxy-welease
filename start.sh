@@ -30,6 +30,13 @@ log "Start creating a pool of ${TOR_INSTANCES} tor instances..."
 
 # "reset" the HAProxy config file because it may contain the previous Privoxy instances information from the previous docker run
 cp /etc/haproxy/haproxy.cfg.default /etc/haproxy/haproxy.cfg
+
+if [[ -n "$PROXY_USER" ]] && [[ -n "$PROXY_PASSWORD" ]]; then
+    AUTH_B64=$(echo -n "${PROXY_USER}:${PROXY_PASSWORD}" | base64 | tr -d '\n')
+    sed -i "s|#PLACEHOLDER_AUTH|acl auth_ok req.hdr(Proxy-Authorization) -m str \"Basic ${AUTH_B64}\"\n  http-request deny deny_status 407 hdr Proxy-Authenticate \"Basic realm=\\\"Proxy\\\"\" if \!auth_ok|" /etc/haproxy/haproxy.cfg
+    log "info" "Proxy authentication enabled for user ${PROXY_USER}."
+fi
+
 # same "reset" logic as above
 cp /etc/tor/torrc.default /etc/tor/torrc
 
