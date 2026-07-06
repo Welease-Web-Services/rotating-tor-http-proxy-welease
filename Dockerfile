@@ -3,16 +3,18 @@ FROM alpine:latest
 ENV \
     # sets the number of tor instances
     TOR_INSTANCES=10 \
-    # sets the interval (in seconds) to rebuild tor circuits
-    TOR_REBUILD_INTERVAL=1800
+    TOR_NEW_CIRCUIT_PERIOD=31536000 \
+    TOR_MAX_CIRCUIT_DIRTINESS=31536000 \
+    TOR_CONTROL_ENABLED=1 \
+    TOR_CONTROL_API_PORT=8080
 
-EXPOSE 3128/tcp 4444/tcp
+EXPOSE 3128/tcp 4444/tcp 8080/tcp
 
-COPY tor.cfg privoxy.cfg haproxy.cfg start.sh bom.sh /
+COPY tor.cfg privoxy.cfg haproxy.cfg start.sh bom.sh control_api.py /
 
 RUN apk --no-cache --no-progress --quiet upgrade && \
     # alpine has a POSIX sed from busybox, for the log re-formatting, GNU sed is required to converting a capture group to lowercase
-    apk --no-cache --no-progress --quiet add tor bash privoxy haproxy curl sed && \
+    apk --no-cache --no-progress --quiet add tor bash privoxy haproxy curl sed python3 && \
     #
     # directories and files
     mv /tor.cfg /etc/tor/torrc.default && \
@@ -20,6 +22,7 @@ RUN apk --no-cache --no-progress --quiet upgrade && \
     mv /haproxy.cfg /etc/haproxy/haproxy.cfg.default && \
     chmod +x /start.sh && \
     chmod +x /bom.sh && \
+    chmod +x /control_api.py && \
     #
     # prepare for low-privilege execution \
     addgroup proxy && \
